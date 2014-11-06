@@ -25,7 +25,7 @@ namespace HelloMvc
       public string Get() {
 
             return "Hello world!@";
-        }
+      }
 
 
       [Route("SimpleActionResult")]
@@ -36,8 +36,14 @@ namespace HelloMvc
 
         return new JsonResult(person);
       }
+
+      [Route("NoContent")]
+      public NoContentResult GetNoContent() {
+
+            return new NoContentResult();
+      }
     }
-    
+
     public class Person {
       public string FirstName {get;set;}
       public string LastName {get;set;}
