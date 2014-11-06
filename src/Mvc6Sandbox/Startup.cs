@@ -2,8 +2,11 @@ using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Routing;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.AspNet.Mvc;
+using Microsoft.AspNet.Http;
+using System.Threading.Tasks;
+using System.IO;
 
-namespace HelloMvc
+namespace Mvc6Sandbox
 {
     public class Startup
     {
@@ -12,40 +15,34 @@ namespace HelloMvc
 
           app.UseServices(services =>
                 {
+
                     services.AddMvc();
           });
+
+          app.UseMiddleware(typeof(BufferingMiddleware));
 
           app.UseMvc();
         }
     }
 
+public class BufferingMiddleware
+    {
+        private RequestDelegate _next;
 
-    public class FooController : Controller {
-      [Route("HelloWorld")]
-      public string Get() {
+        public BufferingMiddleware(RequestDelegate next)
+        {
+            _next = next;
+        }
 
-            return "Hello world!@";
-      }
-
-
-      [Route("SimpleActionResult")]
-      public JsonResult GetSimpleAction() {
-            var person = new Person() {
-              FirstName="Dave", LastName="Brown"
-              };
-
-        return new JsonResult(person);
-      }
-
-      [Route("NoContent")]
-      public NoContentResult GetNoContent() {
-
-            return new NoContentResult();
-      }
-    }
-
-    public class Person {
-      public string FirstName {get;set;}
-      public string LastName {get;set;}
+        public async Task Invoke(HttpContext ctx)
+        {
+          var networkStream = ctx.Response.Body;
+          var bufferedStream = new MemoryStream();
+          ctx.Response.Body = bufferedStream;
+          await _next(ctx);
+          bufferedStream.Position = 0;
+          ctx.Response.ContentLength = bufferedStream.Length;
+          await bufferedStream.CopyToAsync(networkStream);
+        }
     }
 }
